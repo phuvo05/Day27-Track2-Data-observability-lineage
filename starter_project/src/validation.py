@@ -74,7 +74,10 @@ def send_discord_message(summary: dict[str, int | str], webhook_url: str = DISCO
     http_request = request.Request(
         webhook_url,
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
         method="POST",
     )
     with request.urlopen(http_request, timeout=15) as response:
@@ -93,7 +96,11 @@ def run_lab_check(
     output_file = write_summary(summary, output_path or (OUTPUT_DIR / "validation_summary.json"))
 
     if not skip_discord:
-        send_discord_message(summary)
+        try:
+            send_discord_message(summary)
+        except Exception as exc:  # pragma: no cover
+            import sys
+            print(f"[WARNING] Discord notification failed: {exc}", file=sys.stderr)
 
     if summary["validation_status"] == "failed" and not allow_failure:
         raise LabValidationError(f"Validation failed. Summary saved to {output_file}")
